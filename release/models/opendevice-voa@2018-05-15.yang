@@ -1,0 +1,326 @@
+module opendevice-voa {
+    yang-version 1;
+    namespace "http://www.opendevice.net/yang/opendevice-voa";
+    prefix "od-voa";
+    import opendevice-types {
+        prefix "od-types";
+        revision-date 2017-10-08;
+    }
+
+    organization "Infinera";
+    contact 
+        "support@infinera.com";
+    description 
+        "
+         This model describes configuration and operational state data for
+         optical VOAs, deployed as part of a transport line system.";
+    revision 2018-05-15 {
+        description "cleanup comment";
+    }
+
+    revision 2017-10-08 {
+        description 
+            "Import opendevice-types
+             yang version 1
+             cleanup to match other device
+             remove specification for POC";
+    }
+
+    revision 2017-07-27;
+
+  feature power-control-supported {
+    description
+        "This feature means the device supports power control of a channel.";
+  }
+
+  feature attenuation-control-supported {
+    description
+        "This feature means the device supports attenuation control of a channel.";
+  }
+
+
+  typedef optical-power-absolute {
+    type decimal64 {
+      fraction-digits 2;
+      range "-100.00..100.00";
+    }
+    description 
+      "The absolute optical power in dBM.";
+  }
+
+  typedef optical-power-relative {
+    type decimal64 {
+      fraction-digits 2;
+      range "-100.00..100.00";
+    }
+    description
+      "The relative optical power in dB.";
+  }
+    typedef operational-mode {
+        type enumeration {
+            enum auto {
+                value 1;
+                description "Under this mode, the optical amplifier configuration (system) is controlled by a controller";
+            }
+            enum manual {
+                value 2;
+                description "Under this mode, the optical amplifier configuration (base) is controled manually";
+            }
+        }
+        default "auto";
+        description "Determine the configuration set used to configure the optical amplifier";
+    }
+
+  typedef optical-control-mode {
+    type enumeration {
+      enum power {
+
+        value 1;
+                description "This is a close loop control to the output sensor";
+
+      }
+      enum loss {
+        value 2;
+                description "This is a close loop control to the output sensor";
+
+      }
+      enum off {
+        value 3;
+                description 
+                    "This mode is in open-loop (direct control to the attenuation of the underlying
+                     wss module";
+
+      }
+    }
+    description
+      "Optical Control Mode: identifies specific algorithm related to power management and general optical control.";
+    reference "openroadm.org: Open ROADM MSA Specification.";
+  }
+    grouping voa-attenuation-specification {
+        container attenuation-range-spec {
+            leaf min-attenuation {
+                type decimal64 {
+                    fraction-digits 1;
+                }
+                units dB;
+            }
+            leaf max-attenuation {
+                type decimal64 {
+                    fraction-digits 1;
+                }
+                units dB;
+            }
+            leaf end-of-life-margin {
+                type decimal64 {
+                    fraction-digits 1;
+                }
+                units dB;
+            }
+        }
+    }
+
+
+
+    grouping operational-spectrum-spec {
+        description "Define the operational band associated to the VOA ";
+        container optical-spectrum-spec {
+            leaf optical-band-type {
+                type identityref {
+                    base od-types:optical-band;
+                }
+            }
+            leaf lower-frequency {
+                type od-types:dwdm-frequency-mhz;
+                units MHz;
+                description 
+                    "start-frequency represent the lower frquency value. It shall be specified for the C band in reference to 193.1 THz. The alllowed frequency value can be built from the following expression: f = 193.1 THz plus or minus (n x slot-with-granulality)
+                     TODO: Need to add the information about the L band";
+
+            }
+            leaf upper-frequency {
+                type od-types:dwdm-frequency-mhz;
+                units MHz;
+                description 
+                    "stop-frequency represent the upper frquency value. It shall be specified for the C band in reference to 193.1 THz. The alllowed frequency value can be built from the following expression: f = 193.1 THz plus or minus (n x slot-with-granulality)
+                     TODO: Need to add the information about the L band";
+
+            }
+        }
+    }
+    grouping voa-specification-top {
+        container specification {
+            container state {
+                config false;
+                uses voa-attenuation-specification;
+                uses operational-spectrum-spec;
+            }
+        }
+    }
+
+
+    grouping voa-system-config {
+        uses voa-base-config;
+    }
+    grouping voa-system-state {
+        uses voa-base-state;
+    }
+    grouping voa-system-top {
+        description "Configuration for auto mode";
+
+        container system {
+            container config {
+                uses voa-system-config;
+            }
+            container state {
+                config false;
+                uses voa-system-config;
+                uses voa-system-state;
+            }
+        }
+    }
+
+    grouping voa-base-config {
+        leaf optical-control-mode-selection {
+            type optical-control-mode;
+            default "off";
+            description 
+                "This parameter define the control mode associated to the channel under configuration.
+                 When using \"power\" mode, the wss device will use the power-target and the power-target-tolerance to adjust automatically the wss channel attenuation (reported by the state parameter \"attenuation\"). Under that mode, it continously monitor the power associated to the channel and make adjustement to the wss device attenuation.
+                 When using \"gain-loss\" mode, the wss device will use the attenuation-target value and apply it the the wss device channel attenuation (reported by the state parameter \"attenuation\").
+                 When using \"off\" mode, the wss device will stop to update the wss device channel attenuation (reported by the state parameter \"attenuation\").
+                 
+                 When transiting from \"off\" to \"gain-loss\" mode, the wss device will applied the attenuation-target to the wss attenuation directly without any attenuation ramping, it is up to the controller to control the way any ramp-up or down is applied. The bast approach will be to read the attenuation and apply it to the attenuation-target so no jump is caused on the optical signal ";
+
+        }
+        leaf voa-attenuation {
+            type optical-power-relative;
+            units dB;
+            description "This is the direct attenuation of the underlying device for initialization purpose";
+        }
+
+    leaf blocked {
+        type boolean;
+        description
+              "Optically blocked.";
+      }
+        container attenuation-control {
+
+            when "../optical-control-mode-selection = \"loss\"" {
+                description "";
+            }
+            if-feature attenuation-control-supported;
+            description "parameters used for optical attenuation control";
+    leaf attenuation-target {
+      type optical-power-relative;
+                units dB;
+
+      description
+            "attenuation target";
+    }
+    leaf attenuation-target-tolerance {
+      type optical-power-relative;
+      description
+            "This value represents the tolerance which the attenuation control should try to control the attenuation.";
+    }        }
+
+        container power-control {
+            when "../optical-control-mode-selection = \"power\"" {
+                description "";
+            }
+            if-feature power-control-supported;
+            description "parameters used for optical power control";
+
+    leaf power-target {
+      type optical-power-absolute;
+      description
+            "The closed loop control target power of the connection.";
+    }
+    leaf power-target-tolerance {
+      type optical-power-relative;
+      description
+            "This value represents the tolerance which the power control should try to control the power. If the power ";
+    }        }
+
+ 
+    leaf input-port-reference {
+      type string ;
+      description "The input port for the Connection";
+    }
+    leaf output-port-reference {
+      type string ;
+      description "The output port for the Connection";
+    }
+
+    }
+
+    grouping voa-base-state{
+        leaf measured-attenuation {
+            type decimal64 {
+                fraction-digits 1;
+            }
+            units dB;
+        }
+}
+    grouping voa-base-top {
+        description "Configuration for manual mode";
+
+        container base {
+            container config {
+                uses od-voa:voa-base-config;
+            }
+            container state {
+                config false;
+                uses od-voa:voa-base-config;
+                uses od-voa:voa-base-state;
+            }
+        }
+    }
+    
+    grouping voa-config {
+        description "Configuration data for VOAs";
+        leaf name {
+            type string;
+            description "User-defined name assigned to identify a specific voa in the device";
+        }
+        leaf controller-mode {
+            type operational-mode ;
+            default "auto";
+
+        }
+
+    }
+    grouping voa-state;
+  
+    
+    grouping voa-top {
+        description "Top-level grouping for VOA Variable Optical Attenuator";
+        container voas {
+            description "Enclosing container for list of VOAs";
+            list voa {
+                key name;
+                description "List of VOA present in the device";
+                leaf name {
+                    type leafref {
+                        path "../config/name";
+                    }
+                }
+            container config {
+                description "Configuration data for the voa";
+                uses voa-config;
+            }
+            container state {
+                config false;
+                description "Operational state data for the voa";
+                uses od-voa:voa-config;
+                uses od-voa:voa-state;
+
+            }
+            uses od-voa:voa-base-top;
+                uses od-voa:voa-system-top;
+
+            }
+        }
+    }
+
+    uses voa-top;
+}

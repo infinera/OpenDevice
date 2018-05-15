@@ -1,0 +1,102 @@
+module opendevice-power-monitor {
+    yang-version 1;
+    namespace "http://www.opendevice.net/yang/opendevice-power-monitor";
+    prefix "od-power-mon";
+    import opendevice-types {
+        prefix "od-types";
+        revision-date 2017-10-08;
+    }
+    organization "The power monitor provide the list of pd-sensor that are available on an equipmentsen";
+    revision 2017-10-08 {
+        description 
+            "Use opendevice-types
+             yang version 1";
+    }
+    revision 2017-09-29;
+
+
+  grouping power-monitor-config {
+    description
+      "Configuration data for the optical power monitor";
+
+    leaf sensor-port {
+      type string ;
+      description
+        "Reference to the name of the sensor port that the
+         PD sensor is reporting power information
+         
+          ";
+    }
+  }
+
+  grouping power-monitor-state {
+    description
+      "Operational state data ";
+
+    leaf lower-frequency {
+      type od-types:dwdm-frequency-ghz;
+      description
+        "Lower frequency associated to the sensor";
+    }
+
+    leaf upper-frequency {
+      type od-types:dwdm-frequency-ghz;
+      description
+        "Upper frequency associated to the sensor";
+    }
+
+    leaf mesured-power {
+      type od-types:optical-power-dBm;
+            units dBm;
+
+    }
+        leaf valid-data {
+            type boolean;
+            description "True if measured values are valid";
+        }
+  }
+
+  grouping power-monitor-top {
+    description
+      "Top-level grouping ";
+
+    container power-monitors {
+      description
+        "Top-level container for optical power monitors";
+
+      list power-monitor {
+        key sensor-port;
+        description
+          "List of channel monitors, keyed by channel monitor name.";
+
+        leaf sensor-port {
+          type leafref {
+            path "../config/sensor-port";
+          }
+          description
+            "References the optical channel monitor name";
+        }
+
+
+        container config {
+          description
+            "Configuration data ";
+
+          uses power-monitor-config;
+        }
+
+        container state {
+
+          config false;
+
+          description
+            "Operational state data ";
+
+          uses power-monitor-config;
+          uses power-monitor-state;
+        }
+      }
+    }
+  }
+
+        uses power-monitor-top;}

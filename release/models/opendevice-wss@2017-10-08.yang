@@ -1,0 +1,470 @@
+module opendevice-wss {
+    yang-version 1;
+    namespace "http://opendevice.net/yang/wss";
+    prefix "od-wss";
+    import opendevice-types {
+        prefix "od-types";
+        revision-date 2017-10-08;
+    }
+
+
+    organization "Infinera";
+    contact 
+        "sales@infinera.com";
+    description 
+        "This model describes configuration and operational state data for optical wavelength selective switches,
+         deployed as part of a transport line system";
+    revision 2017-10-08 {
+        description 
+            "Corrected port reference, now a string
+             Remove specification for now
+             added use of the wss-top";
+    }
+    revision 2017-10-06;
+
+    revision 2017-08-10;
+
+  feature connection-attenuation-control-supported {
+    description
+        "This feature means the device supports attenuation control of a channel.";
+  }
+
+  feature connection-power-control-supported {
+    description
+        "This feature means the device supports power control of a channel.";
+  }
+
+  feature slot-based-supported {
+    description
+        "This feature means the device is slot based rather than true-flex
+         and supports defining a channel by start and end slot, inclusive.";
+  }
+
+
+  typedef optical-power-absolute {
+    type decimal64 {
+      fraction-digits 2;
+      range "-100.00..100.00";
+    }
+    description 
+      "The absolute optical power in dBM.";
+  }
+
+  typedef optical-power-relative {
+    type decimal64 {
+      fraction-digits 2;
+      range "-100.00..100.00";
+    }
+    description
+      "The relative optical power in dB.";
+  }
+
+  typedef optical-control-mode {
+    type enumeration {
+      enum power {
+
+        value 1;
+                description "This is a close loop control to the output sensor";
+
+      }
+      enum gain-loss {
+        value 2;
+                description "This is a close loop control to the output sensor";
+
+      }
+      enum off {
+        value 3;
+                description 
+                    "This mode is in open-loop (direct control to the attenuation of the underlying 
+                     wss module";
+
+      }
+    }
+    description
+      "Optical Control Mode: identifies specific algorithm related to power management and general optical control.";
+    reference "openroadm.org: Open ROADM MSA Specification.";
+  }
+    identity slot-width-granularity {
+        description "Base identity for slot-witdh-granularity";
+    }
+    identity slot-width-12-5 {
+        base slot-width-granularity;
+        description "Define a slot-width-granularity of 12.5 Ghz";
+    }
+
+    identity slot-width-6-25 {
+        base slot-width-granularity;
+        description "Define a slot-width-granularity of 6.25 Ghz";
+    }
+
+    identity slot-width-3-125 {
+        base slot-width-granularity;
+        description "Define a slot-width-granularity of 3.125 Ghz";
+    }
+    grouping wss-operational-connection-spec {
+        description "Define the specification associated to connection";
+        leaf maximun-number-of-connection-supported {
+            type uint16;
+        }
+    }
+    grouping wss-operational-channel-spec {
+        description "Define the specification associated to a channel configuration size";
+        leaf min-channel-width-in-slot {
+            type uint16;
+            units slot;
+            description "Minimum channel width express as number of the slot-width-granularity ";
+        }
+        leaf max-channel-width-in-slot {
+            type uint16;
+            units slot;
+            description "Maximun channel width express as number of slot. Cannot be bigger then /optical-slot-spec/number-of-slot";
+        }
+    }
+
+
+    
+    grouping wws-operational-optical-slot-spec {
+        description "Specification associated to a wss with optical-slot feature";
+        container optical-slot-spec {
+            leaf number-of-slot {
+                type uint16;
+                description 
+                    "Define the number of optical slot supported by the wss devices
+                     ";
+            }
+            leaf first-slot-index {
+                type uint16;
+                default "1";
+                description "Index of the first optical slot";
+            }
+            leaf last-slot-index {
+                type uint16;
+                description "Index of the last optical slot";
+            }
+            leaf slot-width-granularity {
+                type identityref{
+                    base slot-width-granularity;
+}
+            }
+            leaf max-attenuation-delta {
+                type optical-power-relative;
+                default "0.25";
+                description "Maximum attenuation delta between 2 slots to be compliant to the optical specification";
+            }
+
+        }
+    }
+
+
+    grouping wss-operational-spectrum-spec {
+        description "Define the operational band associated to the EDFA ";
+        container optical-spectrum-spec {
+            leaf optical-band-type {
+                type identityref {
+                    base od-types:optical-band;
+                }
+            }
+            leaf lower-frequency {
+                type od-types:dwdm-frequency-mhz;
+                units MHz;
+                description 
+                    "start-frequency represent the lower frquency value. It shall be specified for the C band in reference to 193.1 THz. The alllowed frequency value can be built from the following expression: f = 193.1 THz plus or minus (n x slot-with-granulality)
+                     TODO: Need to add the information about the L band";
+
+            }
+            leaf upper-frequency {
+                type od-types:dwdm-frequency-mhz;
+                units MHz;
+                description 
+                    "stop-frequency represent the upper frquency value. It shall be specified for the C band in reference to 193.1 THz. The alllowed frequency value can be built from the following expression: f = 193.1 THz plus or minus (n x slot-with-granulality)
+                     TODO: Need to add the information about the L band";
+
+            }
+        }
+    }
+
+
+    grouping wss-specification-top {
+        container specification {
+            container state {
+                config false;
+                uses od-wss:wss-operational-spectrum-spec;
+                uses od-wss:wws-operational-optical-slot-spec;
+                uses od-wss:wss-operational-channel-spec;
+                uses od-wss:wss-operational-connection-spec;
+
+            }
+        }
+    }
+
+
+  grouping monitored-power-state {
+    description
+      "Provides a definition for the top-level for a Monitored-Power-State
+       entity.";
+    leaf power {
+      type optical-power-absolute;
+      description "Measured Optical power";
+    }
+  }
+
+
+  grouping monitored-power-frequency-state {
+    description "State parameters for Monitored Channels";
+    uses monitored-power-state;
+    leaf measured-frequency {
+      type od-types:dwdm-frequency-mhz;
+      description
+            "Channel measured center frequency";
+    }
+    leaf valid-data {
+      type boolean;
+      description
+            "True if measured values are valid.";
+    }
+  }
+
+
+
+  grouping channel-wavelength-specification-attributes {
+    description "Parameters for describing a channel.";
+    leaf lower-frequency {
+      type od-types:dwdm-frequency-mhz;
+      description "Channel Start Frequency in MHz";
+    }
+
+    leaf upper-frequency {
+      type od-types:dwdm-frequency-mhz;
+      description "Channel End Frequency in MHz";
+    }
+  }
+
+
+  grouping channel-wavelength-specification-state {
+    description "State items of a channel, uses Channel-Wavelength-Specification-Attributes.";
+    leaf actual-lower-frequency {
+      type od-types:dwdm-frequency-mhz;
+      description "Channel Start Frequency in MHz";
+    }
+
+    leaf actuak-upper-frequency {
+      type od-types:dwdm-frequency-mhz;
+      description "Channel End Frequency in MHz";
+    }
+    leaf start-slot-index {
+      if-feature slot-based-supported;
+      type uint16;
+      config false;
+      description
+            "Starting slot index of the channel, inclusive.";
+    }
+    leaf end-slot-index {
+      if-feature slot-based-supported;
+      type uint16;
+      config false;
+      description
+            "End slot index of the channel, inclusive.";
+    }
+  }
+
+  grouping attenuated-slot-entities {
+    description
+        "Top level grouping for Attenuated Slot entities.";
+
+    container slots {
+      if-feature slot-based-supported;
+
+      description
+            "This provides top level container for the list of all slot entities
+             included within a connection.";
+      list slot {
+        key name;
+        description
+                "An entry containing management information applicable to a particular
+                 slot.";
+                leaf name {
+                    type string;
+                }
+
+
+
+        leaf attenuation {
+          type optical-power-relative;
+                    default "0";
+
+          description
+                "For slot attenuation, this is expressed as an offset from the
+                 containing channel's attenuation.";
+        }
+      }
+    }
+  }
+
+
+
+  grouping connection-config {
+    description
+        "Config parameters associated with the connection.";
+    uses channel-wavelength-specification-attributes;
+        leaf optical-control-mode-selection {
+            type optical-control-mode;
+            default "off";
+            description 
+                "This parameter define the control mode associated to the channel under configuration.
+                 When using \"power\" mode, the wss device will use the power-target and the power-target-tolerance to adjust automatically the wss channel attenuation (reported by the state parameter \"attenuation\"). Under that mode, it continously monitor the power associated to the channel and make adjustement to the wss device attenuation.
+                 When using \"gain-loss\" mode, the wss device will use the attenuation-target value and apply it the the wss device channel attenuation (reported by the state parameter \"attenuation\").
+                 When using \"off\" mode, the wss device will stop to update the wss device channel attenuation (reported by the state parameter \"attenuation\").
+                 
+                 When transiting from \"off\" to \"gain-loss\" mode, the wss device will applied the attenuation-target to the wss attenuation directly without any attenuation ramping, it is up to the controller to control the way any ramp-up or down is applied. The bast approach will be to read the attenuation and apply it to the attenuation-target so no jump is caused on the optical signal ";
+
+        }
+        leaf wss-attenuation {
+            type optical-power-relative;
+            units dB;
+            description "This is the direct attenuation of the underlying device for initialization purpose";
+        }
+
+    leaf blocked {
+        type boolean;
+        description
+              "Optically blocked.";
+      }
+        container attenuation-control {
+
+            when "../optical-control-mode-selection = \"gain-loss\"" {
+                description "";
+            }
+            if-feature connection-attenuation-control-supported;
+            description "parameters used for optical attenuation control";
+    leaf attenuation-target {
+      type optical-power-relative;
+                units dB;
+
+      description
+            "attenuation target";
+    }
+    leaf attenuation-target-tolerance {
+      type optical-power-relative;
+      description
+            "This value represents the tolerance which the attenuation control should try to control the attenuation.";
+    }        }
+
+        container power-control {
+            when "../optical-control-mode-selection = \"power\"" {
+                description "";
+            }
+            if-feature connection-power-control-supported;
+            description "parameters used for optical power control";
+
+    leaf power-target {
+      type optical-power-absolute;
+      description
+            "The closed loop control target power of the connection.";
+    }
+    leaf power-target-tolerance {
+      type optical-power-relative;
+      description
+            "This value represents the tolerance which the power control should try to control the power. If the power ";
+    }        }
+    uses attenuated-slot-entities;
+
+ 
+    leaf input-port-reference {
+      type string ;
+      description "The input port for the Connection";
+    }
+    leaf output-port-reference {
+      type string ;
+      description "The output port for the Connection";
+    }
+  }
+
+  grouping connection-state {
+    description
+        "State parameters associated with the connection";
+    uses channel-wavelength-specification-state;
+  }
+
+
+
+  grouping connection-top {
+    description
+        "Provides a definition for the top-level for a connection entity.";
+
+    container connections {
+
+      description
+            "This provides top level container for the list of all connection
+             entities.";
+      list connection {
+        key name;
+        description
+                "An entry containing management information applicable to a particular
+                 connection.";
+            leaf name {
+                type string;
+            }
+
+        container config {
+            description "Configurable items of the connection.";
+            uses connection-config;
+        }
+
+        container state {
+            config false;
+            description "Operational state data of the connection.";
+            uses connection-config;
+            uses connection-state;
+        }
+      }
+    }
+  }
+
+
+   grouping wss-config {
+        description "Configuration data for optical amplifiers";
+        leaf name {
+            type string;
+            description 
+                "User-defined name assigned to identify a specific amplifier
+                 in the device";
+        }
+   }
+
+    grouping wss-state {
+        description 
+            "Operational state data for wss";
+    }
+    
+    grouping wss-top {
+        description "Top-level grouping for wavelength selective switch data";
+        container wavelength-selective-switches {
+            description "Enclosing container for list of wavelength selective switches";
+            list wss {
+                key name;
+
+                leaf name {
+                    type leafref {
+                        path "../config/name";
+                    }
+                    description "Reference to the name of the wss";
+                }
+                container config {
+                    description "Configuration data for the wss";
+                    uses wss-config;
+                }
+                container state {
+                    config false;
+                    description "Operational state data for the wss";
+                    uses wss-config;
+                
+                    uses wss-state;
+                }
+                uses connection-top;
+            }
+        
+        }
+    }
+    uses wss-top;
+   
+}

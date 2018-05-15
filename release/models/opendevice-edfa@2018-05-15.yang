@@ -1,0 +1,367 @@
+module opendevice-edfa {
+    yang-version 1;
+    namespace "http://www.opendevice.net/yang/opendevice-edfa";
+    prefix "od-edfa";
+    import opendevice-types {
+        prefix "od-types";
+        revision-date 2017-10-08;
+    }
+
+
+    organization "Infinera";
+    contact 
+        "support@infinera.com";
+    description 
+        "This model describes configuration and operational state data for
+         optical amplifiers, deployed as part of a transport line system.";
+    revision 2018-05-15 {
+        description "cleanup comment";
+    }
+
+    revision 2017-10-08;
+    revision 2017-09-19 {
+        description "Remove identityref";
+    }
+
+    revision 2017-07-08 {
+        description "Initial revision";
+    }
+
+    feature gain-mask-supported {
+        description "This feature means the device supports gain-mask specification.";
+    }
+    feature tilk-mask-supported {
+        description "This feature means the device supports tilk-mask specification.";
+    }
+    feature switched-gain-supported {
+        description "This feature means the device supports switched-gain.";
+    }
+    typedef optical-amplification-type {
+        type enumeration {
+            enum edfa {
+                value 1;
+            }
+            enum backward-raman {
+                value 2;
+                description "Backward pumping Raman amplifier";
+            }
+            enum forward-raman {
+                value 3;
+                description "Forward pumping Raman amplifier";
+            }
+        }
+        description "Type definition for different types of optical amplifiers";
+    }
+    typedef optical-control-mode {
+        type enumeration {
+            enum constant-gain {
+                value 1;
+                description "Value indicates that constant-gain is the optical-control-mode";
+            }
+            enum constant-power {
+                value 2;
+                description "Value indicates that constant-power is the control-mode";
+            }
+        }
+        default "constant-gain";
+        description 
+            "Type definition for different types of optical amplifier
+             operating modes";
+    }
+    typedef operational-mode {
+        type enumeration {
+            enum auto {
+                value 1;
+                description "Under this mode, the optical amplifier configuration (system) is controlled by a controller";
+            }
+            enum manual {
+                value 2;
+                description "Under this mode, the optical amplifier configuration (base) is controled manually";
+            }
+        }
+        default "auto";
+        description "Determine the configuration set used to configure the optical amplifier";
+    }
+    typedef gain-range {
+        type enumeration {
+            enum gain-range-1;
+            enum gain-range-2;
+            enum gain-range-3;
+        }
+    }
+
+    grouping edfa-operational-spectrum-spec {
+        description "Define the operational band associated to the EDFA ";
+        container optical-spectrum-spec {
+            leaf optical-band-type {
+                type identityref {
+                    base od-types:optical-band;
+                }
+            }
+            leaf lower-frequency {
+                type od-types:dwdm-frequency-mhz;
+            }
+            leaf upper-frequency {
+                type od-types:dwdm-frequency-mhz;
+            }
+        }
+    }
+    grouping edfa-gain-mask-spec {
+        container gain-mask-specs {
+            list gain-mask {
+                key "min-gain max-gain";
+                leaf min-gain {
+                    type decimal64 {
+                        fraction-digits 2;
+                    }
+                    units dB;
+                }
+                leaf max-gain {
+                    type decimal64 {
+                        fraction-digits 2;
+                    }
+                    units dB;
+                }
+                list gain-mask {
+                    key index;
+                    min-elements 1;
+                    max-elements 32;
+                    ordered-by system;
+                    leaf index {
+                        type uint8;
+                    }
+                    container gain-polygone {
+                        container low-gain-min-power-out {
+                            leaf pwr-in {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                            leaf pwr-out {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                        }
+                        container low-gain-max-power-out {
+                            leaf pwr-in {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                            leaf pwr-out {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                        }
+                        container high-gain-min-power-out {
+                            leaf pwr-in {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                            leaf pwr-out {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                        }
+                        container high-gain-max-power-out {
+                            leaf pwr-in {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                            leaf pwr-out {
+                                type decimal64 {
+                                    fraction-digits 2;
+                                }
+                                units dBm;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    grouping edfa-tild-mask_spec;
+    grouping edfa-noise-figure-spec;
+    grouping edfa-specification-top {
+        container specification {
+            container state {
+                config false;
+                uses edfa-operational-spectrum-spec;
+                uses edfa-gain-mask-spec;
+                uses edfa-tild-mask_spec;
+                uses edfa-noise-figure-spec;
+            }
+        }
+    }
+    grouping edfa-system-config {
+        uses edfa-base-config;
+    }
+    grouping edfa-system-state {
+        uses edfa-base-state;
+    }
+    grouping edfa-system-top {
+        container system {
+            container config {
+                uses edfa-system-config;
+            }
+            container state {
+                config false;
+                uses edfa-system-config;
+                uses edfa-system-state;
+            }
+        }
+    }
+    grouping edfa-base-config {
+
+        leaf target-gain {
+            type decimal64 {
+                fraction-digits 2;
+                range "0..max";
+            }
+            units dB;
+            description "When in constantGain mode, this indicates the target gain in dB the amplifier is to maintain.";
+        }
+        leaf target-tilt {
+            type decimal64 {
+                fraction-digits 2;
+            }
+            units dB;
+            description 
+                "Indicates the gain tilt applied over the spectrum. This is a a measure
+                 in dB of the gain slope from low to high frequency. A gain tilt of 0 dB means no tilt.";
+
+        }
+        leaf target-output-power {
+            type decimal64 {
+                fraction-digits 2;
+            }
+            units dBm;
+            description 
+                "When in constantPower mode, this indicates the target power in
+                 dBm the amplifier is to maintain.";
+        }
+        leaf control-mode {
+            type optical-control-mode;
+            description "The operating mode of the amplifier";
+        }
+        leaf gain-range-selection {
+            type gain-range;
+            default "gain-range-1";
+        }
+
+        leaf enabled {
+            type boolean;
+            description "Turns power on / off to the amplifiers gain module.";
+        }    }
+    grouping edfa-base-state{
+        leaf ingress-sensor-power {
+            type decimal64 {
+                fraction-digits 3;
+            }
+            units dBm;
+        }
+        leaf egress-sensor-power {
+            type decimal64 {
+                fraction-digits 3;
+            }
+            units dBm;
+        }
+        leaf measured-sensor-gain {
+            type decimal64 {
+                fraction-digits 3;
+            }
+            units dB;
+        }
+        leaf psd-ase-actual-mc-band {
+            type decimal64 {
+                fraction-digits 5;
+            }
+            units dBm/GHz;
+        }
+}
+    grouping edfa-base-top {
+        container base {
+            container config {
+                uses edfa-base-config;
+            }
+            container state {
+                config false;
+                uses edfa-base-config;
+                uses edfa-base-state;
+            }
+        }
+    }
+
+    grouping edfa-config {
+        description "Configuration data for optical amplifiers";
+        leaf name {
+            type string;
+            description 
+                "User-defined name assigned to identify a specific amplifier
+                 in the device";
+        }
+        leaf controller-mode {
+            type operational-mode ;
+            description 
+                "Select the mode of operation of the device, manual or autoo. In manual mode, the base configuration
+                 is used. In auto, the system configuration is used";
+
+        }
+
+    }
+    grouping edfa-state {
+        description 
+            "Operational state data for optical amplifiers
+             ";
+    }
+
+
+    grouping edfa-top {
+        description "Top-level grouping for EDFA optical amplifier data";
+        container edfas {
+            description "Enclosing container for list of edfas
+             ";
+            list edfa {
+                key name;
+                description "List of EDFA optical amplifiers present in the device";
+                leaf name {
+                    type leafref {
+                        path "../config/name";
+                    }
+                    description "Reference to the name of the amplifier";
+                }
+                container config {
+                    description "Configuration data for the amplifier";
+                    uses edfa-config;
+                }
+                container state {
+                    config false;
+                    description "Operational state data for the amplifier";
+                    uses edfa-config;
+
+                    uses edfa-state;
+                }
+                uses edfa-base-top;
+                uses edfa-system-top;
+
+            }
+
+        }
+
+    }
+
+    uses edfa-top;
+
+}
